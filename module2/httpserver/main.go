@@ -23,7 +23,8 @@ func healthz(w *EngineResponseWriter, r *http.Request) {
 func headers(w *EngineResponseWriter, r *http.Request) {
 	for name, headers := range r.Header {
 		for _, h := range headers {
-			fmt.Fprintf(w, "%v: %v\n", name, h)
+			w.Header().Set(name, h)
+			// fmt.Fprintf(w, "%v: %v\n", name, h)
 		}
 	}
 }
