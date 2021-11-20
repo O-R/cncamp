@@ -1,0 +1,7 @@
+server:
+  http1:
+    name: httpserver1
+    addr: 0.0.0.0:8081
+  http2:
+    name: httpserver2
+    addr: 0.0.0.0:8082
