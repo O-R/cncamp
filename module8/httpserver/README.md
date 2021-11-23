@@ -12,10 +12,10 @@
 
 - 探活：[查看代码](https://github.com/hzhhong/cncamp/blob/main/module8/httpserver/httpserver.yaml#L57-L63)
 - 资源需求和QoS保证：[查看代码](https://github.com/hzhhong/cncamp/blob/main/module8/httpserver/httpserver.yaml#L39-L45)
-- 优雅终止：[查看代码](https://github.com/hzhhong/gap/blob/main/app.go#L67-L104)
+- 优雅终止：[查看代码](https://github.com/hzhhong/gap/blob/v0.0.1/app.go#L67-L104)
     - 监听进程退出信号
     - 结合 [errorgroup](https://pkg.go.dev/golang.org/x/sync@v0.0.0-20210220032951-036812b2e83c/errgroup?utm_source=gopls) 实现多Server优雅退出
-- 日志等级：[查看代码](https://github.com/hzhhong/gap/blob/main/log/log.go#L22-L32)
+- 日志等级：[查看代码](https://github.com/hzhhong/gap/blob/v0.0.1/log/log.go#L22-L32)
     
     ```
     INFO method=getCfgValue server.http1.name=httpserver1
@@ -42,6 +42,9 @@
     - configMap：[点击查看](https://github.com/hzhhong/cncamp/blob/main/module8/httpserver/httpserver.yaml#L1-L13)
     - 挂载配置：[点击查看1](https://github.com/hzhhong/cncamp/blob/main/module8/httpserver/httpserver.yaml#L77-L83)、[点击查看2](https://github.com/hzhhong/cncamp/blob/main/module8/httpserver/httpserver.yaml#L46-L49)
     
+- 创建Sevice供集群内使用 [点击查看](https://github.com/hzhhong/cncamp/blob/main/module8/httpserver/httpserver.yaml#L85-L97)
+- 配置Ingress供集群外使用 [点击查看](https://github.com/hzhhong/cncamp/blob/main/module8/httpserver/httpserver.yaml#L99-L129)
+  
   
   
   
