@@ -20,7 +20,7 @@ metadata:
     app: cncamp-httpserver
   name: cncamp-httpserver
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: cncamp-httpserver

@@ -43,6 +43,7 @@
     - 挂载配置：[点击查看1](https://github.com/hzhhong/cncamp/blob/main/module8/httpserver/httpserver.yaml#L77-L83)、[点击查看2](https://github.com/hzhhong/cncamp/blob/main/module8/httpserver/httpserver.yaml#L46-L49)
     
 - 创建Sevice供集群内使用 [点击查看](https://github.com/hzhhong/cncamp/blob/main/module8/httpserver/httpserver.yaml#L85-L97)
+  - 调整 deployment 的 replicas=3 保证高可用
 - 配置Ingress供集群外使用 [点击查看](https://github.com/hzhhong/cncamp/blob/main/module8/httpserver/httpserver.yaml#L99-L129)
   
   
