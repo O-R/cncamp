@@ -3,12 +3,16 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/hzhhong/cncamp/httpserver/metrics"
 	"github.com/hzhhong/gap"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	configx "github.com/hzhhong/gap/config"
 	logx "github.com/hzhhong/gap/log"
@@ -40,6 +44,28 @@ func headers(ctx *gap.Context) {
 	}
 }
 
+func randInt(min int, max int) int {
+	rand.Seed(time.Now().UTC().UnixNano())
+	return min + rand.Intn(max-min)
+}
+
+func hello(ctx *gap.Context) {
+	timer := metrics.NewTimer()
+	defer timer.ObserveTotal()
+	user := ctx.Request.URL.Query().Get("user")
+	delay := randInt(0, 2000)
+	time.Sleep(time.Millisecond * time.Duration(delay))
+	if user != "" {
+		io.WriteString(ctx.ResponseWriter, fmt.Sprintf("hello [%s], delay %d\n", user, delay))
+	} else {
+		io.WriteString(ctx.ResponseWriter, fmt.Sprintf("hello [stranger], delay %d\n", delay))
+	}
+	io.WriteString(ctx.ResponseWriter, "===================Details of the http request header:============\n")
+	for k, v := range ctx.Request.Header {
+		io.WriteString(ctx.ResponseWriter, fmt.Sprintf("%s=%s\n", k, v))
+	}
+}
+
 func main() {
 	if os.Getenv(VersionENV) == "" {
 		os.Setenv(VersionENV, "1.0.0")
@@ -51,6 +77,7 @@ func main() {
 	if err := cfg.Load(); err != nil {
 		panic(err)
 	}
+	metrics.Register()
 	srv1 := newHttpServer(
 		getCfgValue(cfg, "server.http1.name", logger),
 		getCfgValue(cfg, "server.http1.addr", logger),
@@ -88,17 +115,65 @@ func getCfgValue(cfg configx.Config, key string, logger logx.Logger) string {
 func newHttpServer(name string, addr string, logger logx.Logger) *gap.Server {
 	srv := gap.RawSrv(name, addr, logger)
 
+	useIngoreMiddleware(srv, "/favicon.ico")
+	usePromMiddleware(srv, "/metrics")
+	useHealthzMiddleware(srv, "/healthz")
+	useHealthzMiddleware(srv, "/readinesshealthz")
+	useHealthzMiddleware(srv, "/livenesshealthz")
+	useHealthzMiddleware(srv, "/startuphealthz")
+
 	srv.UseSimple(func(c *gap.Context) {
 		c.ResponseWriter.Header().Add(VersionENV, os.Getenv(VersionENV))
 	})
 	srv.Use(gap.LoggerProcessor(), gap.RouterProcessor())
 
 	srv.AddRouter("/", greet)
-	srv.AddRouter("/healthz", healthz)
-	srv.AddRouter("/readinesshealthz", healthz)
-	srv.AddRouter("/livenesshealthz", healthz)
-	srv.AddRouter("/startuphealthz", healthz)
 	srv.AddRouter("/headers", headers)
-
+	srv.AddRouter("/hello", hello)
 	return srv
+}
+
+func useHealthzMiddleware(srv *gap.Server, path string) {
+
+	middleware := func(next gap.MiddlewareHandler) gap.MiddlewareHandler {
+		return func(c *gap.Context) {
+
+			if c.Request.URL.Path == path {
+				healthz(c)
+			} else if next != nil {
+				next(c)
+			}
+		}
+	}
+	srv.HttpHandler.Use(middleware)
+}
+
+func useIngoreMiddleware(srv *gap.Server, path string) {
+
+	middleware := func(next gap.MiddlewareHandler) gap.MiddlewareHandler {
+		return func(c *gap.Context) {
+
+			if c.Request.URL.Path == path {
+
+			} else if next != nil {
+				next(c)
+			}
+		}
+	}
+	srv.HttpHandler.Use(middleware)
+}
+
+func usePromMiddleware(srv *gap.Server, path string) {
+	promhandler := promhttp.Handler()
+	prommiddleware := func(next gap.MiddlewareHandler) gap.MiddlewareHandler {
+		return func(c *gap.Context) {
+
+			if c.Request.URL.Path == path {
+				promhandler.ServeHTTP(c.ResponseWriter, c.Request)
+			} else if next != nil {
+				next(c)
+			}
+		}
+	}
+	srv.HttpHandler.Use(prommiddleware)
 }
