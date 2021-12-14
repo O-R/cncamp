@@ -169,7 +169,7 @@ func usePromMiddleware(srv *gap.Server, path string) {
 		return func(c *gap.Context) {
 
 			if c.Request.URL.Path == path {
-				promhandler.ServeHTTP(c.ResponseWriter, c.Request)
+				promhandler.ServeHTTP(c.ResponseWriter.ResponseWriter, c.Request)
 			} else if next != nil {
 				next(c)
 			}

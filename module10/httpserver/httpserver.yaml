@@ -16,6 +16,9 @@ metadata:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8081"
   labels:
     app: cncamp-httpserver
   name: cncamp-httpserver
@@ -34,8 +37,10 @@ spec:
         app: cncamp-httpserver
     spec:
       containers:
-        - image: huangzhihong/cncamp:httpserver-v3
+        - image: huangzhihong/cncamp:httpserver-v3-metrics
           name: httpserver
+          ports:
+          - containerPort: 8081
           resources:
             requests:
               memory: 64Mi
