@@ -37,7 +37,7 @@ spec:
         app: cncamp-httpserver
     spec:
       containers:
-        - image: huangzhihong/cncamp:httpserver-v4-metrics
+        - image: huangzhihong/cncamp:httpserver-v5-metrics
           name: httpserver
           ports:
           - containerPort: 8081
