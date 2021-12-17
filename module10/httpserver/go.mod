@@ -2,7 +2,7 @@ module github.com/hzhhong/cncamp/httpserver
 
 go 1.17
 
-require github.com/hzhhong/gap v0.0.1
+require github.com/hzhhong/gap v0.0.2
 
 require (
 	github.com/prometheus/client_golang v1.11.0
