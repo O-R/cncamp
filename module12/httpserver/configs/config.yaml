@@ -1,0 +1,10 @@
+server:
+  http1:
+    name: httpserver1
+    addr: 0.0.0.0:8081
+  http2:
+    name: httpserver2
+    addr: 0.0.0.0:8082
+service:
+  test:
+    addr: http://127.0.0.1:8081

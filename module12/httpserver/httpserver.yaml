@@ -1,0 +1,136 @@
+apiVersion: v1
+data:
+  config.yaml: |
+    server:
+      http1:
+        name: httpserver1
+        addr: 0.0.0.0:8081
+      http2:
+        name: httpserver2
+        addr: 0.0.0.0:8082
+kind: ConfigMap
+metadata:
+  name: httpserver-config
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: cncamp-httpserver
+  name: cncamp-httpserver
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: cncamp-httpserver
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+      labels:
+        app: cncamp-httpserver
+    spec:
+      containers:
+        - image: huangzhihong/cncamp:httpserver-v5-metrics
+          name: httpserver
+          ports:
+          - containerPort: 8081
+          resources:
+            requests:
+              memory: 64Mi
+              cpu: 250m
+            limits:
+              memory: 128Mi
+              cpu: 500m
+          volumeMounts:
+            - name: config
+              mountPath: "/app/configs/"
+              readOnly: true
+#          lifecycle:
+#            postStart:
+#              exec:
+#                command:
+#                  - /bin/sh
+#                  - -c
+#                  - sleep 60
+          livenessProbe:
+            httpGet:
+              path: /livenesshealthz
+              port: 8081
+            initialDelaySeconds: 60
+            failureThreshold: 1
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readinesshealthz
+              port: 8081
+            periodSeconds: 5
+            successThreshold: 2
+          startupProbe:
+            httpGet:
+              path: /startuphealthz
+              port: 8081
+            failureThreshold: 30
+            periodSeconds: 10
+            
+      volumes:
+        - name: config
+          configMap:
+            name: httpserver-config
+            items:
+              - key: "config.yaml"
+                path: "config.yaml"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: cncamp-httpserver
+  name: cncamp-httpserver
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 8081
+  selector:
+    app: cncamp-httpserver
+---
+apiVersion: v1
+data:
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURIekNDQWdlZ0F3SUJBZ0lKQU9SVWJUSlJPbU1RTUEwR0NTcUdTSWIzRFFFQkN3VUFNQ1l4RXpBUkJnTlYKQkFNTUNtTnVZMkZ0Y0M1amIyMHhEekFOQmdOVkJBb01CbU51WTJGdGNEQWVGdzB5TVRFeE1qTXdNVE0zTkRGYQpGdzB5TWpFeE1qTXdNVE0zTkRGYU1DWXhFekFSQmdOVkJBTU1DbU51WTJGdGNDNWpiMjB4RHpBTkJnTlZCQW9NCkJtTnVZMkZ0Y0RDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBT2owRE1iMGp1RXQKRTk5ZUdJdWZiU21rUnJSQnhVYm5yVnlXY29iZjRLSHFubGphSDY5QmN5ZGpaTTdhWG9TUVdxdW9teXJPQmNjYQpldXpCZytOUGZodmdScHkyRlZ2UndNR2R0MUVxeUM2eENvK25Ddkl6Wm45UXdRVTdZRVFpTUc2SGxaS0Vob3RCCitrWWdiamRSYkpqZU0zREZKTzR2aEtZMnl6Vmg1bjR6ZVpNK0UzY2F3VElNKzZMbUk0a1VkK3Q4NUhpRDBJcEoKc1JtY1FESDRPa0QzbG5sTFM3dmZwUzA1OWFBMlM5Nnp6UUJocVJxUEMxWjRzVmlHeHg2eWlZcEg2b2I4amllRgp1MmhGdWN4RHAyZ3pBWktGMXF1VkhZTjlNNGlWVmFWaUd5M3VNSE82NW9laTlFd0ZIMmgzdHkzY1NPQkdSb1UwCi9TSlBVUkJlYWhrQ0F3RUFBYU5RTUU0d0hRWURWUjBPQkJZRUZBR3JqZkZ4WlBpOWJHbVkxVUxkZ2orWm5GR3IKTUI4R0ExVWRJd1FZTUJhQUZBR3JqZkZ4WlBpOWJHbVkxVUxkZ2orWm5GR3JNQXdHQTFVZEV3UUZNQU1CQWY4dwpEUVlKS29aSWh2Y05BUUVMQlFBRGdnRUJBQnYrTTVxK3RJcU45Z2NVbkI2OTNyQ2pMY0d4TlFwaUxMOFNpTkVJClFVZER1QmduZC9sejZOVVNPTWgzVVNiU2dkd2VXZWs4K0gvN0NDVVJuTDNHU2V0bGlidGR6TXN1MU9ET3pRS3AKakcyeUZrWGdXNmZtZUlkS29LREM0ZFlwS3puaytVRmliSFZrWTBjK2dCM3FKUytjcXh4TkY1U2dDY2paUnE1dQpjWjAxVVN3c2J1N05NTE9tNG0ySXhVd1ZETks1VmtEaFZCNERuRS9oRm9rNUxqWHdlTG9KR3Mwc0xJWE52eWIyCnEwN212QnowM1grUGc5ZTJ4ZURacmd2bDdYcmFlVkZab0hBUlExVnJrVkFRQ2ZtVnZXRGYwcXo0Ym5lZGw0ejgKdGJ4ZEw3ZWNmU1h1eitaMW9KaTB6eFk2dms5ZVR1UW9aUWNGb21tSnVjSmcvdHM9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+  tls.key: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktjd2dnU2pBZ0VBQW9JQkFRRG85QXpHOUk3aExSUGYKWGhpTG4yMHBwRWEwUWNWRzU2MWNsbktHMytDaDZwNVkyaCt2UVhNblkyVE8ybDZFa0ZxcnFKc3F6Z1hIR25ycwp3WVBqVDM0YjRFYWN0aFZiMGNEQm5iZFJLc2d1c1FxUHB3cnlNMlovVU1FRk8yQkVJakJ1aDVXU2hJYUxRZnBHCklHNDNVV3lZM2pOd3hTVHVMNFNtTnNzMVllWitNM21UUGhOM0dzRXlEUHVpNWlPSkZIZnJmT1I0ZzlDS1NiRVoKbkVBeCtEcEE5NVo1UzB1NzM2VXRPZldnTmt2ZXM4MEFZYWthand0V2VMRlloc2Nlc29tS1IrcUcvSTRuaGJ0bwpSYm5NUTZkb013R1NoZGFybFIyRGZUT0lsVldsWWhzdDdqQnp1dWFIb3ZSTUJSOW9kN2N0M0VqZ1JrYUZOUDBpClQxRVFYbW9aQWdNQkFBRUNnZ0VBWlF0dSsyR2JGQ3NrWXBBREg1VUFtYjVxK01kS2xlM3FNYTRFY1dKc29tOE4KVGtjVzFVTVRldk5QQjdhS3B2K2loTEQyMVVOV0dEM3hNZjdpZ1ZlNndNYXdla3MweW9ZYUVTR2pJVzdvTS9DUgpQeXhhd0NIeGhLbjNmNWg0c2pVT1F2Tkd1cTRIV2lJOU4rdmJRdDFydUljeFV1b0FrZHhFc29BejlxekhlTmR4Ck5wbEpaYm0zbU81U3doeVlhUUg1VkdXTjdQYm43L284Ynh6M3JVbndFVlBMWUFsaUtPRm1tTmtDRTMwTE91QS8KWmhGdkJkZzY2R2N2TVEzaE1xOFEyelowTm5adnNTTGJ2MkJyd09RRk1oM2hFRzlVWExrakpzN2x0bXp0MlpCSgp4ZXR1amVvYVR3d3pYZWgzdkIvTWlsbWlSVzhFMnRJS3RUTHcvWXNwVFFLQmdRRDNZd2p1UTlHNWZRV0ZlNnNTCjN1bmZZajJMUFNvQXlIbFI0NFBJVGFwRmttY2pKUGpGdE83T3FmcVRqVmlacEVTUHRPeURuMzFhODRYdUgxNnoKazl4OTk1a2E2YkZqeWFsQXExY0xGY1BObDlrOHFXYjcrNW9ERkp4SE9yb2UweWF4SUM3eU1QQlppVThCMExESQp6bkFhbVJaakRUWk9sYmVhUXFNNVZ5ZGtZd0tCZ1FEeEVGNWF5SGhBalp6WkV6TUNhK3F3aXFCWUdmcFYvRWE0CkF2b0RkMUs1dXJiRmpTUHZxeVIyV1hjc1Njb2poTG5OZlFRNXI4YXhlSEdTc0xzeWdkcndlUXpqU3RDd1liWHQKaDRCR0NmU2todWFrRlNtNXlpNjB2a1ZXeGdVdGFqNTdiR2xIL2lVcjI4bUN0RWdvTXl3L3h5T3MrTlEwaTB1WApCY1ROVjY4S1V3S0JnQzlIYVJTSU41TzRsZzZOdFFNMVFRTWxObGZmQjZFQXIxYjhJVnB0cFdZSWRkZWNvRUxBCnNvY2lxelg1NUgzd2kvM2UrUGlxeVgxUlh6NUVGb2hCY1BsT0VaKzRHK1BUVFpxRFpHNUU2WmZvTm1kR2hOMFIKbDd5USt0RU9Jelh5NnNrZE9udWs2THBqNklxVFJNWUwxaGJ2UFAwUE1GclNlRFZ1R04zRGowNjdBb0dCQU1KTwpPRStpa05NdmtrS2lxQllHbUZnT2xTb09YbXJhZXNJdG5Bb1pMdlFIM1BTbFRGY05zc2syV2NtMy9KZmVqc2xrClFIaWpCMXZiUW1oRHpjL3JQV2RobXhMR0ppcFZ5QWVhbGJsZW92UE96SzlyWTRPZXhVRG9zUWs5ZWNUZWcxaUcKek9HN3A0aVBrd0NvZ2hUdEVuaWg4azZsRHA3L3ZFRVI1RXpEcFpLREFvR0FXQ2pHMGZlOGJHY1h2UXlObGNiMAp5bjdGR1dabnJFMS9zOUpMRFE0TkVGSnhoZXY1QkgvZ3Vmd1NkU1huWS8zUnEvS3RQd21pNE9IbUQ4Q3ZjZ2tECjZFMDN4YmNNb05KQ2JWU2xmSmJlVWdDT2FqVGNPWFpaZjNGQ21Cc3F3cjFITmtVa2srYjhHR1dCNW1RK2U4eGYKUjVxSEM1SGtteno2OWVLTmZtVUxVMXM9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K
+kind: Secret
+metadata:
+  name: tls-cncamp-httpserver
+type: kubernetes.io/tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cncamp-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  rules:
+  - host: cncamp.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: cncamp-httpserver
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - cncamp.com
+    secretName: tls-cncamp-httpserver
+
+
