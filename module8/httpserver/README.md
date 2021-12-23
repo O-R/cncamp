@@ -8,9 +8,10 @@
 
 - 优雅启动：[查看代码](https://github.com/hzhhong/cncamp/blob/main/module8/httpserver/httpserver.yaml#L64-L75)
     - `startupProbe` : 当容器创建后开始检测，每隔10s检测一次，调大 failureThreshold=30  
-    - `readinessProbe` : startupProbe 成功后开始检测，每隔5s检测一次，2次成功后ready
+    - `readinessProbe` : 确定 backend 何时 ready,加入service backend 接收流量，初始值为not ready。 存在于整个 container lifecycle，可配合，每隔5s检测一次，2次成功后ready。
 
 - 探活：[查看代码](https://github.com/hzhhong/cncamp/blob/main/module8/httpserver/httpserver.yaml#L57-L63)
+  - `livenessProbe` : 确定何时重启容器。`startupProbe` 成功后开始探测，配合 `initialDelaySeconds` 可实现等待 `readinessProbe` 探测成功
 - 资源需求和QoS保证：[查看代码](https://github.com/hzhhong/cncamp/blob/main/module8/httpserver/httpserver.yaml#L39-L45)
 - 优雅终止：[查看代码](https://github.com/hzhhong/gap/blob/v0.0.1/app.go#L67-L104)
     - 监听进程退出信号
