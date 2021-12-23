@@ -1,0 +1,93 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: httpsserver
+spec:
+  gateways:
+    - httpsserver
+  hosts:
+    - httpsserver.cncamp.io
+  http:
+    - match:
+        - port: 443
+          uri:
+            exact: "/trace"
+      route:
+        - destination:
+            host: service0
+            port:
+              number: 80
+    - match:
+        - port: 443
+          uri:
+            prefix: "/v5/"
+        - port: 443
+          uri:
+            prefix: "/v5"
+      rewrite:
+        uri: "/"
+      route:
+        - destination:
+            host: httpserver
+            subset: v5
+            port:
+              number: 80
+    - match:
+        - port: 443
+          uri:
+            prefix: "/v3/"
+        - port: 443
+          uri:
+            prefix: "/v3"
+      rewrite:
+        uri: "/"
+      route:
+        - destination:
+            host: httpserver
+            subset: v3
+            port:
+              number: 80
+    - route:
+        - destination:
+            host: httpserver
+            subset: v5
+            port:
+              number: 80
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: httpsserver
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - hosts:
+        - httpsserver.cncamp.io
+      port:
+        name: https-default
+        number: 443
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: cncamp-credential
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: canary
+spec:
+  host: httpserver
+  trafficPolicy:
+    loadBalancer:
+      simple: RANDOM
+  subsets:
+    - name: v3
+      labels:
+        version: v3
+    - name: v5
+      labels:
+        version: v5
+      trafficPolicy:
+        loadBalancer:
+          simple: ROUND_ROBIN
