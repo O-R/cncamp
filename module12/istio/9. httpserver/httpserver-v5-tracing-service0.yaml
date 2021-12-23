@@ -41,7 +41,7 @@ spec:
         version: v6
     spec:
       containers:
-        - image: huangzhihong/cncamp:httpserver-v5-tracing
+        - image: huangzhihong/cncamp:httpserver-v6-tracing
           name: httpserver
           ports:
             - containerPort: 8081
