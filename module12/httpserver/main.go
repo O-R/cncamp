@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/hzhhong/cncamp/httpserver/metrics"
@@ -140,9 +141,26 @@ func trace(cfg configx.Config, logger logx.Logger) gap.HandlerFunc {
 		if addr == "" {
 			io.WriteString(c.ResponseWriter, "end tracing")
 		}
+		req, err := http.NewRequest("GET", addr, nil)
+		if err != nil {
+			fmt.Printf("#{err}")
+		}
 
-		if _, err := http.Get(addr); err != nil {
-			logger.Log(logx.LevelError, "httpgeterr", err)
+		lowerCaseHeader := make(http.Header)
+
+		for key, value := range c.Request.Header {
+			lowerCaseHeader[strings.ToLower(key)] = value
+		}
+		logger.Log(logx.LevelInfo, "headers", lowerCaseHeader)
+
+		req.Header = lowerCaseHeader
+
+		client := &http.Client{}
+
+		if _, err := client.Do(req); err != nil {
+			logger.Log(logx.LevelError, "httpget|err", fmt.Sprintf("Http get failed with error: %s", err))
+		} else {
+			logger.Log(logx.LevelInfo, "httpget|info", "Http get succeeded")
 		}
 		io.WriteString(c.ResponseWriter, fmt.Sprintf("begin tracing ,downstream address:[%s]", addr))
 	}
